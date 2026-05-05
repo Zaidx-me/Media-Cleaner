@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.vishnu.whatsappcleaner
+package com.zaidxme.whatsappcleaner
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

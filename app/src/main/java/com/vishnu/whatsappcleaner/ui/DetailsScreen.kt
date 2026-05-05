@@ -1,23 +1,4 @@
-/*
- * Copyright (C) 2025 Vishnu Sanal T
- *
- * This file is part of WhatsAppCleaner.
- *
- * Quotes Status Creator is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-package com.vishnu.whatsappcleaner.ui
+package com.zaidxme.whatsappcleaner.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -98,12 +79,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavHostController
-import com.vishnu.whatsappcleaner.Constants
-import com.vishnu.whatsappcleaner.MainViewModel
-import com.vishnu.whatsappcleaner.R
-import com.vishnu.whatsappcleaner.Target
-import com.vishnu.whatsappcleaner.model.ListDirectory
-import com.vishnu.whatsappcleaner.model.ListFile
+import com.zaidxme.whatsappcleaner.Constants
+import com.zaidxme.whatsappcleaner.MainViewModel
+import com.zaidxme.whatsappcleaner.R
+import com.zaidxme.whatsappcleaner.Target
+import com.zaidxme.whatsappcleaner.model.ListDirectory
+import com.zaidxme.whatsappcleaner.model.ListFile
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -122,6 +103,12 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     val fileList by viewModel.fileList.collectAsState()
     val sentList by viewModel.sentList.collectAsState()
     val privateList by viewModel.privateList.collectAsState()
+    val receivedStack by viewModel.receivedStack.collectAsState()
+    val sentStack by viewModel.sentStack.collectAsState()
+    val privateStack by viewModel.privateStack.collectAsState()
+    val trashFileList by viewModel.trashFileList.collectAsState()
+    val trashSentList by viewModel.trashSentList.collectAsState()
+    val trashPrivateList by viewModel.trashPrivateList.collectAsState()
     val isInProgress by viewModel.isInProgress.collectAsState()
     val isGridView by viewModel.isGridView.collectAsState()
     val fileReloadTrigger by viewModel.fileReloadTrigger.collectAsState()
@@ -135,6 +122,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     var isAllSelected by remember { mutableStateOf(false) }
+    var showTrashBin by remember { mutableStateOf(false) }
 
     val tabs = listOf("Received", "Sent", "Private")
 
@@ -151,18 +139,13 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     val gridStates = remember {
         List(3) { LazyGridState() }
     }
-    val listStates = remember {
-        List(3) { LazyListState() }
-    }
-
     val showHeader by remember {
         derivedStateOf {
             if (isGridView) {
                 val state = gridStates[pagerState.currentPage]
                 state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0
             } else {
-                val state = listStates[pagerState.currentPage]
-                state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0
+                true
             }
         }
     }
@@ -219,6 +202,13 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         }
     }
 
+    LaunchedEffect(isGridView) {
+        if (!isGridView) {
+            selectedItems.clear()
+            isAllSelected = false
+        }
+    }
+
     Scaffold(
         modifier = Modifier.background(MaterialTheme.colorScheme.background),
         topBar = {
@@ -228,6 +218,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     viewModel.toggleViewType()
                 },
                 isGridView = isGridView,
+                isTrashMode = showTrashBin,
+                onTrashToggle = {
+                    showTrashBin = !showTrashBin
+                },
                 onSortClick = {
                     showSortDialog = true
                     dateRangePickerState.setSelection(null, null)
@@ -305,11 +299,31 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     else -> privateList
                 }
 
+                val swipeStack = when (page) {
+                    0 -> receivedStack
+                    1 -> sentStack
+                    else -> privateStack
+                }
+
+                val trashList = when (page) {
+                    0 -> trashFileList
+                    1 -> trashSentList
+                    else -> trashPrivateList
+                }
+                            var showTrashRestoreAllConfirm by remember { mutableStateOf(false) }
+                            var showTrashDeleteAllConfirm by remember { mutableStateOf(false) }
+
+                val target = when (page) {
+                    0 -> Target.Received
+                    1 -> Target.Sent
+                    else -> Target.Private
+                }
+
                 Column(
                     Modifier
                         .fillMaxSize()
                 ) {
-                    if (list.isNotEmpty()) {
+                    if (!showTrashBin && isGridView && list.isNotEmpty()) {
                         IconButton(
                             modifier = Modifier
                                 .align(Alignment.End)
@@ -330,7 +344,62 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         }
                     }
 
-                    if (list.isNotEmpty()) {
+                    if (showTrashBin && trashList.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TextButton(onClick = { showTrashRestoreAllConfirm = true }) {
+                                Text(text = "Restore All")
+                            }
+
+                            TextButton(onClick = { showTrashDeleteAllConfirm = true }) {
+                                Text(text = "Delete All")
+                            }
+                        }
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                        ) {
+                            items(trashList) { trashFile ->
+                                TrashFileRow(
+                                    file = trashFile,
+                                    onRestore = {
+                                        viewModel.restoreFromTrash(target, trashFile)
+                                    },
+                                    onDeletePermanently = {
+                                        viewModel.deleteFromTrash(target, trashFile)
+                                    }
+                                )
+                            }
+                        }
+                        if (showTrashRestoreAllConfirm) {
+                            ConfirmationDialog(
+                                onDismissRequest = { showTrashRestoreAllConfirm = false },
+                                onConfirmation = {
+                                    viewModel.restoreAllTrash(target)
+                                    showTrashRestoreAllConfirm = false
+                                },
+                                list = trashList,
+                                navController = navController
+                            )
+                        }
+
+                        if (showTrashDeleteAllConfirm) {
+                            ConfirmationDialog(
+                                onDismissRequest = { showTrashDeleteAllConfirm = false },
+                                onConfirmation = {
+                                    viewModel.deleteAllTrash(target)
+                                    showTrashDeleteAllConfirm = false
+                                },
+                                list = trashList,
+                                navController = navController
+                            )
+                        }
+                    } else if (!showTrashBin && isGridView && list.isNotEmpty()) {
                         if (isGridView) {
                             LazyVerticalGrid(
                                 state = gridStates[page],
@@ -346,21 +415,23 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                     }
                                 }
                             }
-                        } else {
-                            LazyColumn(
-                                state = listStates[page],
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(8.dp)
-                            ) {
-                                items(list) {
-                                    ItemListCard(it, navController, selectedItems.contains(it)) {
-                                        if (selectedItems.contains(it)) selectedItems.remove(it)
-                                        else selectedItems.add(it)
-                                    }
-                                }
-                            }
                         }
+                    } else if (!showTrashBin && !isGridView && swipeStack.isNotEmpty()) {
+                        SwipeableCardStack(
+                            files = swipeStack,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp),
+                            onKeepTop = {
+                                viewModel.keepTopFile(target)
+                            },
+                            onDeleteTop = {
+                                viewModel.deleteTopFile(target)
+                            },
+                            onOpenFile = {
+                                openFile(navController.context, it)
+                            }
+                        )
                     } else {
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -376,7 +447,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 tint = MaterialTheme.colorScheme.secondaryContainer
                             )
                             Text(
-                                text = "Nothing to clean",
+                                text = if (showTrashBin) "Trash bin is empty" else "Nothing to clean",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -385,13 +456,29 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 }
             }
 
-            CleanUpButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                selectedItems = selectedItems,
-                onShowDialog = { showConfirmationDialog = true }
-            )
+            if (!showTrashBin && isGridView) {
+                CleanUpButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    selectedItems = selectedItems,
+                    onShowDialog = { showConfirmationDialog = true }
+                )
+            } else if (!showTrashBin) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    text = "Swipe left to delete and right to keep.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    text = "Restore items or permanently delete them from Trash Bin.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 
@@ -432,6 +519,8 @@ fun DetailScreenTopBar(
     title: String = "",
     toggleGridView: () -> Unit,
     isGridView: Boolean,
+    isTrashMode: Boolean,
+    onTrashToggle: () -> Unit,
     onSortClick: () -> Unit
 ) {
     TopAppBar(
@@ -465,6 +554,23 @@ fun DetailScreenTopBar(
             IconButton(
                 modifier = Modifier
                     .size(32.dp),
+                onClick = { onTrashToggle() }
+            ) {
+                Icon(
+                    modifier = Modifier.size(32.dp),
+                    painter = painterResource(
+                        id = if (isTrashMode) R.drawable.recycling_round else R.drawable.recycling
+                    ),
+                    tint = MaterialTheme.colorScheme.primary,
+                    contentDescription = "trash bin",
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            IconButton(
+                modifier = Modifier
+                    .size(32.dp),
                 onClick = { onSortClick() }
             ) {
                 Icon(
@@ -477,6 +583,57 @@ fun DetailScreenTopBar(
             Spacer(modifier = Modifier.width(8.dp))
         }
     )
+}
+
+@Composable
+fun TrashFileRow(
+    file: ListFile,
+    onRestore: () -> Unit,
+    onDeletePermanently: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = file.name.removeSuffix(".trash"),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1
+            )
+
+            Text(
+                modifier = Modifier.padding(top = 4.dp),
+                text = "${file.size} • ${DateFormat.getDateInstance().format(file.lastModified())}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onRestore) {
+                    Text(text = "Restore")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                TextButton(onClick = onDeletePermanently) {
+                    Text(text = "Delete Permanently")
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

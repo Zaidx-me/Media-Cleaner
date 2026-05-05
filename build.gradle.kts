@@ -8,14 +8,12 @@ plugins {
 
 configure<com.diffplug.gradle.spotless.SpotlessExtension> {
     java {
-        licenseHeaderFile("spotless-header")
         importOrder("android", "androidx", "com", "java", "")
         target("app/src/**/*.java")
         googleJavaFormat("1.25.2").aosp()
         removeUnusedImports()
     }
     kotlin {
-        licenseHeaderFile("spotless-header")
         target("app/src/**/*.kt")
         ktlint("1.5.0")
             .editorConfigOverride(

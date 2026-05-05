@@ -21,9 +21,9 @@ CI runs `spotlessCheck` then `testDebug` on every push/PR.
 
 ## Build Variants
 
-- **debug**: `com.vishnu.whatsappcleaner.debug`
-- **release**: `com.vishnu.whatsappcleaner` (ProGuard minification + resource shrinking)
-- **play**: `com.vishnu.whatsappcleaner.play` (Google Play distribution, based on release)
+- **debug**: `com.zaidxme.whatsappcleaner.debug`
+- **release**: `com.zaidxme.whatsappcleaner` (ProGuard minification + resource shrinking)
+- **play**: `com.zaidxme.whatsappcleaner.play` (Google Play distribution, based on release)
 
 ## Architecture
 
