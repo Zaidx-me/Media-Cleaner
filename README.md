@@ -38,25 +38,6 @@
 
 ![Media Cleaner](https://github.com/Zaidx-me/Media-Cleaner/blob/main/fastlane/metadata/android/en-US/images/featureGraphic.png?raw=true)
 
-## Enjoying Media Cleaner? Consider Supporting!
-Consider donating to support the development! It requires a lot of time and effort to develop the
-copylefted libre software app, gratis and ad-free. :D
-
-<p align="center">
-  <a href="https://www.buymeacoffee.com/ZaidxMe">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60px">
-  </a>
-</p>
-
-## Join Telegram Group
-If you enjoy the app, wish to contribute or simply wish to be with like-minded people, come join us. It is fun :)
-
-<p align="center">
-  <a href="https://t.me/MediaCleaner">
-	<img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Join us on Telegram" height="60px">
-  </a>
-</p>
-
 ## Why?
 
 I have seen many Android devices with storage space running out; especially for older folks - they might even replace their smartphones with new ones since it might have become unusable due to the "your device is running out of storage space" issues. Most of the time, all they would have needed were to clean-up the storage consumed by media files. I have been searched for an application for the same but I couldn't find any on the Play Store nor F-Droid that _"actually worked"_, mostly limited due to Android's varying permission requirements for different android API levels. So I decided to build one myself that will meet my goals! :)
